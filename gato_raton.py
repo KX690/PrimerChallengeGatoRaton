@@ -281,5 +281,5 @@ while(raton!=gato):
         break
     time.sleep(2)
     mueve_raton()
-    render_tabla()                                                                              #hola
+    render_tabla()                                                                              
    
