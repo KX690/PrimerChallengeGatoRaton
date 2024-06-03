@@ -2,284 +2,120 @@ import random
 import time
 
 cuadricula = int(input("Introduzca el tamaño de la cuadricula: "))
+moves = [(0, -1), (0, 1), (1, 0), (-1, 0)]
 
-norte=[0,-1]
-sur=[0,1]
-este=[1,0]
-oeste=[-1,0]
 
-distancia_raton=[0]*4
-distancias_gato=[0]*4
-posible_norte=[]
-posible_sur=[]
-posible_este=[]
-posible_oesto=[]
-
-raton= [0,0]
-raton_futuro=[0,0]
-gato_futuro=[3,3]
-
-gato=[cuadricula-1,cuadricula-1]
-b=True
+raton = [0, 0]
+gato = [cuadricula - 1, cuadricula - 1]
 
 def render_tabla():
-    tabla = [[0 for _ in range(cuadricula)] for _ in range(cuadricula)]
+    tabla = [['.' for _ in range(cuadricula)] for _ in range(cuadricula)]
+    tabla[raton[0]][raton[1]] = "R"
+    tabla[gato[0]][gato[1]] = "G"
 
-    for i in range(cuadricula):
-        for j in range(cuadricula):
-            tabla[i][j]="."
-
-
-    tabla[raton[0]][raton[1]]="R"
-    tabla[gato[0]][gato[1]]="G"
-
-
-    for i in range(cuadricula):
-        
-        for j in range(cuadricula):
-            print(f"{tabla[i][j]} ", end='')
-        
-        print("\n")
-        
+    for fila in tabla:
+        print(" ".join(fila))
     print("**********************************************")
 
-def calcular_distancia(posible):
-    #se movio al norte mi gato
-    distancia=(abs(posible[0]-gato[0])+abs(posible[1]-(gato[1])))
+def calcular_distancia(raton, gato):
+    return abs(raton[0] - gato[0]) + abs(raton[1] - gato[1])
 
-    return distancia  
-  
+def evaluate(position):
+    raton, gato = position
+    return calcular_distancia(raton, gato)
 
-def calcular_distancia_futuro(posible_gato):
-    
-    distancia=((abs(posible_gato[0]-raton_futuro[0])+abs(posible_gato[1]-(raton_futuro[1])))+(abs(posible_gato[0]-raton[0])+abs(posible_gato[1]-raton[1])))
-    if(posible_gato[0]==posible_gato[1]):
-        return (distancia - 1)
-    return distancia
-render_tabla()
+def get_children(position, jugada_a_maximizar):
+    raton, gato = position
+    children = []
+    moves = [(0, -1), (0, 1), (1, 0), (-1, 0)]
 
-    
-    
+    if jugada_a_maximizar:
+        for move in moves:
+            new_raton = [raton[0] + move[0], raton[1] + move[1]]
+            if 0 <= new_raton[0] < cuadricula and 0 <= new_raton[1] < cuadricula:
+                children.append((new_raton, gato))
+    else:
+        for move in moves:
+            new_gato = [gato[0] + move[0], gato[1] + move[1]]
+            if 0 <= new_gato[0] < cuadricula and 0 <= new_gato[1] < cuadricula:
+                children.append((raton, new_gato))
+
+    return children
+
+def minimax(position, depth, jugada_a_maximizar):
+    if depth == 0 or position[0] == position[1]:                                        #En este punto donde la posicion del raton y del gato son iguales termina el juego
+        return evaluate(position)
+
+    if jugada_a_maximizar:
+        max_valor = float('-inf')
+        for child in get_children(position, jugada_a_maximizar):
+            valor = minimax(child, depth - 1, False)
+            max_valor = max(max_valor, valor)
+        return max_valor
+    else:
+        min_valor = float('inf')
+        for child in get_children(position, jugada_a_maximizar):
+            valor = minimax(child, depth - 1, True)
+            min_valor = min(min_valor, valor)
+        return min_valor
 
 def mueve_gato():
-    global gato, raton_futuro
-    
-    raton_futuro=[raton[0],raton[1]]
-    #Para los movimientos le puse como restriccion los limites del rablero
-    #Norte
-    if(raton[0]>0):
-        posible_norte=[raton[0]-1,raton[1]]
-        distancia_raton[0]=calcular_distancia(posible_norte)
-    else:
-        distancia_raton[0]=0
-    #Sur
-    if(raton[0]<cuadricula-1):
-        posible_sur=[raton[0]+1, raton[1]]
-        distancia_raton[1]=calcular_distancia(posible_sur)
-    else:
-        distancia_raton[1]=0
-            
-    #Este
-    if(raton[1]<cuadricula-1):
-        posible_este=[raton[0],raton[1]+1]
-        distancia_raton[2]=calcular_distancia(posible_este)
-    else:
-        distancia_raton[2]=0
-        
-    #Oeste
-    if(raton[1]>0):
-        posible_oeste=[raton[0], raton[1]-1]
-        distancia_raton[3]=calcular_distancia(posible_oeste)
-    else:
-        distancia_raton[3]=0
-        
-    #Guardo las distancias a todos los posibles valores de movimiento del raton
-    valor_maximo = max(distancia_raton)
-    #Como estan guardados en orden, el indice indica hacia que movimiento tiene la mayor distancia
-    valor_index = distancia_raton.index(valor_maximo)
-    
-    #Tomando el indice elegimos que movimiento posiblemente haga el raton
-    match valor_index:
-            case 0:
-                raton_futuro[0]=raton_futuro[0]+norte[1]           
-                raton_futuro[1]=raton_futuro[1]+norte[0]  
-            case 1:
-                raton_futuro[0]=raton_futuro[0]+sur[1]
-                raton_futuro[1]=raton_futuro[1]+sur[0]
-            case 2:
-                raton_futuro[0]=raton_futuro[0]+este[1]
-                raton_futuro[1]=raton_futuro[1]+este[0]
-            case 3:
-                raton_futuro[0]=raton_futuro[0]+oeste[1]
-                raton_futuro[1]=raton_futuro[1]+oeste[0]
-    #Comienza a pensar su movimiento el gato
-    #Si la distancia al raton es 1 directamente se movera al lugar del raton
-    #Pero si el raton esta mas alejado, el pensara que camino le combiene
-    if(calcular_distancia(raton)!=1):
-        
-        #Norte
-        if(gato[0]>0):
-            posible_norte=[gato[0]-1,gato[1]]
-            distancias_gato[0]=calcular_distancia_futuro(posible_norte)
-        else:
-            distancias_gato[0]=cuadricula*cuadricula
-        #Sur
-        if(gato[0]<cuadricula-1):
-            posible_sur=[gato[0]+1, gato[1]]
-            distancias_gato[1]=calcular_distancia_futuro(posible_sur)
-        else:
-            distancias_gato[1]=cuadricula*cuadricula
-                
-        #Este
-        if(gato[1]<cuadricula-1):
-            posible_este=[gato[0],gato[1]+1]
-            distancias_gato[2]=calcular_distancia_futuro(posible_este)
-        else:
-            distancias_gato[2]=cuadricula*cuadricula
-            
-        #Oeste
-        if(gato[1]>0):
-            posible_oeste=[gato[0], gato[1]-1]
-            distancias_gato[3]=calcular_distancia_futuro(posible_oeste)
-        else:
-            distancias_gato[3]=cuadricula*cuadricula
-            
-        #Guardamos los valores minimos
-        valor_minimo = min(distancias_gato)
-        #Elegimos el indice de la distancia menor a los posibles valores del raton
-        valor_index = distancias_gato.index(valor_minimo)
-        
-        #Le pasamos el indice para que realice el movimiento el gato
-        match valor_index:
-            case 0:
-                gato[0]=gato[0]+norte[1]
-                gato[1]=gato[1]+norte[0]
-            case 1:
-                gato[0]=gato[0]+sur[1]
-                gato[1]=gato[1]+sur[0]
-            case 2:
-                gato[0]=gato[0]+este[1]
-                gato[1]=gato[1]+este[0]
-            case 3:
-                gato[0]=gato[0]+oeste[1]
-                gato[1]=gato[1]+oeste[0]
-    else:
-        #Si la distancia era 1 significa que estaba alado, por lo tanto ya atrapa al raton
-        gato=[raton[0],raton[1]]
-  
-
-
-def mueve_raton():
-    gato_futuro=[gato[0],gato[1]]
-    
-    if(gato[0]>0):
-        posible_norte=[gato[0]-1,gato[1]]
-        distancias_gato[0]=calcular_distancia(posible_norte)
-    else:
-        distancias_gato[0]=0
-        
-        
-    if(gato[0]<cuadricula-1):
-        posible_sur=[gato[0]+1, gato[1]]
-        distancias_gato[1]=calcular_distancia(posible_sur)
-    else:
-        distancias_gato[1]=0
-            
-        
-    if(gato[1]<cuadricula-1):
-        posible_este=[gato[0],gato[1]+1]
-        distancias_gato[2]=calcular_distancia(posible_este)
-    else:
-        distancias_gato[2]=0
-        
-       
-    if(gato[1]>0):
-        posible_oeste=[gato[0], gato[1]-1]
-        distancias_gato[3]=calcular_distancia(posible_oeste)
-    else:
-        distancias_gato[3]=0
-        
-        
-    valor_maximo = max(distancias_gato)
-    valor_index = distancias_gato.index(valor_maximo)
-    
-    
-    match valor_index:
-            case 0:
-                gato_futuro[0]=gato_futuro[0]+norte[1]           
-                gato_futuro[1]=gato_futuro[1]+norte[0]  
-            case 1:
-                gato_futuro[0]=gato_futuro[0]+sur[1]
-                gato_futuro[1]=gato_futuro[1]+sur[0]
-            case 2:
-                gato_futuro[0]=gato_futuro[0]+este[1]
-                gato_futuro[1]=gato_futuro[1]+este[0]
-            case 3:
-                gato_futuro[0]=gato_futuro[0]+oeste[1]
-                gato_futuro[1]=gato_futuro[1]+oeste[0]
+    global gato, raton
 
     
-    if(raton[0]>0):
-        posible_norte=[raton[0]-1,raton[1]]
-        distancia_raton[0]=calcular_distancia_futuro(posible_norte)
+    if raton[0] == gato[0] or raton[1] == gato[1]:                                      #Verificamos si el gato y el raton estan alineados
+        if raton[0] == gato[0]:                                                         #Si esta alineado horizontalmente se acerca al raton de forma directa
+            if raton[1] < gato[1]:
+                gato[1] -= 1
+            else:
+                gato[1] += 1
+        elif raton[1] == gato[1]:                                                       #Lo mismo que ocurre si estan horizontal pero ahora vertical
+            if raton[0] < gato[0]:
+                gato[0] -= 1
+            else:
+                gato[0] += 1
     else:
-        distancia_raton[0]=cuadricula*cuadricula
-        
-    if(raton[0]<cuadricula-1):
-        posible_sur=[raton[0]+1, raton[1]]
-        distancia_raton[1]=calcular_distancia_futuro(posible_sur)
-    else:
-        distancia_raton[1]=cuadricula*cuadricula
-            
-        
-    if(raton[1]<cuadricula-1):
-        posible_este=[raton[0],raton[1]+1]
-        distancia_raton[2]=calcular_distancia_futuro(posible_este)
-    else:
-        distancia_raton[2]=cuadricula*cuadricula
-        
-       
-    if(raton[1]>0):
-        posible_oeste=[raton[0], raton[1]-1]
-        distancia_raton[3]=calcular_distancia_futuro(posible_oeste)
-    else:
-        distancia_raton[3]=cuadricula*cuadricula
-        
-    
-    valor_minimo = min(distancia_raton)
-    valor_index=distancia_raton.index(valor_minimo)
-    
-    
-    match valor_index:
-        case 0:
-            raton[0]=raton[0]+norte[1]
-            raton[1]=raton[1]+norte[0]
-        case 1:
-            raton[0]=raton[0]+sur[1]
-            raton[1]=raton[1]+sur[0]
-        case 2:
-            raton[0]=raton[0]+este[1]
-            raton[1]=raton[1]+este[0]
-        case 3:
-            raton[0]=raton[0]+oeste[1]
-            raton[1]=raton[1]+oeste[0]
-        
+        mejor_movimiento = None
+        mejor_valor = float('inf')
+        for child in get_children((raton, gato), False):
+            valor = minimax(child, 3, True)                                             #Le di 3 niveles de profundidad para el minimax, esto puede ser cambiado
+            if valor < mejor_valor:
+                mejor_valor = valor
+                mejor_movimiento = child
+        gato = mejor_movimiento[1]
 
-        
+def mueve_raton():                                                                      #Juega el raton, para evitar problemas le espesifico nuevamente que raton y gato son variables globales
+    global raton, gato
+    mejor_movimiento = None
+    mejor_valor = float('-inf')
+    for child in get_children((raton, gato), True):                                     #Paso las posiciones del gato y el raton como tupla
+        valor = minimax(child, 3, False)  
+        if valor > mejor_valor:
+            mejor_valor = valor
+            mejor_movimiento = child
+    raton = mejor_movimiento[0]
 
-render_tabla()   
+render_tabla()
 mueve_raton()
+numero=random.randrange(1,2)
+match numero:
+    case 1: 
+        raton+=moves[1]
+    case 2:
+        raton+=moves[2]
+
 time.sleep(2)
-render_tabla()   
-while(raton!=gato):
+render_tabla()
+
+while raton != gato:
     time.sleep(2)
     mueve_gato()
     render_tabla()
-    
-    if(raton==gato):
+
+    if raton == gato:
         print("Gano el gato")
         break
+
     time.sleep(2)
     mueve_raton()
-    render_tabla()                                                                              
-   
+    render_tabla()
